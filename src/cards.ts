@@ -40,66 +40,67 @@ export default function startCards() {
 	setInterval(() => fpsMeter.text = `FPS: ${app.ticker.FPS.toFixed(0)}`, 500);
 
 	const container = app.stage.addChild(new PIXI.Container());
-	const texture = PIXI.Texture.from('card.png');
 
 	const cards: Card[] = new Array(cardNum);
 
-	(texture.baseTexture as PIXI.utils.EventEmitter).on('loaded', () => {
+	const loader = PIXI.Loader.shared;
+	loader.add('card', 'card.png');
+	loader.load((loader, resources) => {
 		for (let i = 0; i < cardNum; i++) {
-			cards[i] = new Card(i, texture);
+			cards[i] = new Card(i, resources.card.texture);
 			container.addChild(cards[i].sprite);
 		}
 
 		container.x = window.innerWidth / 2 - spriteSize - gap / 2;
 		container.y = window.innerHeight / 2 - cards[0].sprite.height / 2;
 
-		app.start();
-	})
+		const animationLenghtMS = 2000;
 
-	const animationLenghtMS = 2000;
+		app.ticker.add(() => {
+			cards.forEach(card => {
+				if (card.targetPos != null) {
+					card.animT += app.ticker.elapsedMS;
 
-	app.ticker.add(() => {
-		cards.forEach(card => {
-			if (card.targetPos != null) {
-				card.animT += app.ticker.elapsedMS;
+					if (card.animT > animationLenghtMS) {
+						card.sprite.x = spriteSize + gap;
+						card.sprite.y = stackMaxHeight - card.targetPos * stackMaxHeight / cardNum;
+					} else {
+						const targetX = spriteSize + gap;
+						const targetY = stackMaxHeight - card.targetPos * stackMaxHeight / cardNum;
 
-				if (card.animT > animationLenghtMS) {
-					card.sprite.x = spriteSize + gap;
-					card.sprite.y = stackMaxHeight - card.targetPos * stackMaxHeight / cardNum;
-				} else {
-					const targetX = spriteSize + gap;
-					const targetY = stackMaxHeight - card.targetPos * stackMaxHeight / cardNum;
+						const origX = 0;
+						const origY = stackMaxHeight - card.origPos * stackMaxHeight / cardNum;
 
-					const origX = 0;
-					const origY = stackMaxHeight - card.origPos * stackMaxHeight / cardNum;
+						let q = 1 - card.animT / animationLenghtMS;
+						q *= q;
 
-					let q = 1 - card.animT / animationLenghtMS;
-					q *= q;
-
-					card.sprite.x = q * origX + (1-q) * targetX;
-					card.sprite.y = q * origY + (1-q) * targetY;
+						card.sprite.x = q * origX + (1-q) * targetX;
+						card.sprite.y = q * origY + (1-q) * targetY;
+					}
 				}
-			}
+			})
 		})
-	})
 
-	let firstStack = cardNum;
-	let secondStack = 0;
-	const cardMovingFrequencyMS = 1000;
+		let firstStack = cardNum;
+		let secondStack = 0;
+		const cardMovingFrequencyMS = 1000;
 
-	setInterval(() => {
-		if (firstStack > 0) {
-			const topCard = cards[firstStack - 1];
+		setInterval(() => {
+			if (firstStack > 0) {
+				const topCard = cards[firstStack - 1];
 
-			topCard.targetPos = secondStack;
+				topCard.targetPos = secondStack;
 
-			firstStack--;
-			secondStack++;
+				firstStack--;
+				secondStack++;
 
-			container.setChildIndex(topCard.sprite, cardNum - 1);
-		}
+				container.setChildIndex(topCard.sprite, cardNum - 1);
+			}
 
-	}, cardMovingFrequencyMS)
+		}, cardMovingFrequencyMS)
+
+		app.start();
+	});
 
 	document.body.appendChild(app.view);
 }
