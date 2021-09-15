@@ -10,16 +10,14 @@ const app = new PIXI.Application({
 });
 
 export default function startText() {
-
-	const texture = PIXI.Texture.from('card.png');
-
-	(texture.baseTexture as PIXI.utils.EventEmitter).on('loaded', () => {
-		render();
-
+	const loader = PIXI.Loader.shared;
+	loader.add('card', 'card.png');
+	loader.load((loader, resources) => {
+		render(resources.card.texture);
 		app.start();
-	})
+	});
 
-	function render() {
+	function render(texture: PIXI.Texture) {
 		app.stage.removeChildren();
 
 		const itemNum = 3;
@@ -59,7 +57,7 @@ export default function startText() {
 		container.y = window.innerHeight / 2 - size / 2;
 
 		const updateFrequencyMS = 2000;
-		setTimeout(() => render(), updateFrequencyMS);
+		setTimeout(() => render(texture), updateFrequencyMS);
 	}
 
 	document.body.appendChild(app.view);
